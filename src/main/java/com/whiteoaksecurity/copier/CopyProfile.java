@@ -24,7 +24,7 @@ public class CopyProfile {
 	private boolean updateResponseContentLength = false;
 	
 	@JsonCreator
-	public CopyProfile(String name) {
+	public CopyProfile(@JsonProperty("name") String name) {
 		this.name = name;
 		this.requestRulesTableModel = new RequestRulesTableModel();
 		this.responseRulesTableModel = new ResponseRulesTableModel();
@@ -79,12 +79,12 @@ public class CopyProfile {
 		ArrayList<HttpRequestResponse> modified = new ArrayList<>();
 		
 		for (HttpRequestResponse httpRequestResponse : requestResponses) {
-			
+
 			HttpRequest httpRequest = httpRequestResponse.request();
 			boolean isHTTP2 = false;
 			
 			// Convert HTTP/2 to HTTP/1.1 while performing match / replace rules.
-			if (httpRequest.httpVersion().equals("HTTP/2")) {
+			if (httpRequest.httpVersion() != null && httpRequest.httpVersion().equals("HTTP/2")) {
 				isHTTP2 = true;
 				httpRequest = HttpRequest.httpRequest(httpRequest.toByteArray());
 			}
@@ -99,20 +99,9 @@ public class CopyProfile {
 					break;
 				}
 			}
-			
+
 			// HTTP/2 responses appear to get treated the same way as HTTP/1.1 by Burp.
 			HttpResponse httpResponse = httpRequestResponse.response();
-			
-			Integer responseContentLength = null;
-			for (HttpHeader h : httpResponse.headers()) {
-				if (h.name().trim().equalsIgnoreCase("Content-Length")) {
-					try {
-						responseContentLength = Integer.parseInt(h.value().trim());
-					} catch (NumberFormatException e) {}
-
-					break;
-				}
-			}
 			
 			if (replaceRequest) {
 				for (Rule replacement : this.getRequestRulesTableModel().getData()) {
@@ -390,8 +379,21 @@ public class CopyProfile {
 					}
 				}
 			}
-			
-			if (replaceResponse) {
+
+			// Sometimes (e.g. in a Repeater tab) there won't be a response.
+			if (replaceResponse && httpResponse != null) {
+
+				Integer responseContentLength = null;
+				for (HttpHeader h : httpResponse.headers()) {
+					if (h.name().trim().equalsIgnoreCase("Content-Length")) {
+						try {
+							responseContentLength = Integer.parseInt(h.value().trim());
+						} catch (NumberFormatException e) {}
+
+						break;
+					}
+				}
+
 				for (Rule replacement : this.getResponseRulesTableModel().getData()) {
 					if (replacement.isEnabled()) {
 						try {
@@ -516,7 +518,17 @@ public class CopyProfile {
 			
 			// If request was HTTP/2 originally, convert back.
 			if (isHTTP2) {
-				httpRequest = HttpRequest.http2Request(httpRequest.httpService(), httpRequest.headers(), httpRequest.body());
+				// Need to build URL param list manually.
+				ArrayList<HttpParameter> queryParams = new ArrayList<HttpParameter>();
+				for (HttpParameter p : httpRequest.parameters()) {
+					if (p.type().equals(HttpParameterType.URL)) {
+						queryParams.add(p);
+					}
+				}
+
+				HttpRequest http2 = HttpRequest.http2Request(httpRequest.httpService(), httpRequest.headers(), httpRequest.body());
+				// Make sure the request includes the correct method, path, and URL params.
+				httpRequest = http2.withMethod(httpRequest.method()).withPath(httpRequest.path()).withAddedParameters(queryParams);
 			}
 			
 			modified.add(HttpRequestResponse.httpRequestResponse(httpRequest, httpResponse));
