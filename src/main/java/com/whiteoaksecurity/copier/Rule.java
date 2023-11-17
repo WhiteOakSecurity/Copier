@@ -2,6 +2,8 @@ package com.whiteoaksecurity.copier;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -20,7 +22,13 @@ public class Rule {
 	private String comment;
 	
 	@JsonCreator
-	public Rule(boolean enabled, int location, String match, String replace, boolean regex, boolean caseSensitive, String comment) {
+	public Rule(@JsonProperty("enabled") boolean enabled,
+				@JsonProperty("location") int location,
+				@JsonProperty("match") String match,
+				@JsonProperty("replace") String replace,
+				@JsonProperty("regex") boolean regex,
+				@JsonProperty("caseSensitive") boolean caseSensitive,
+				@JsonProperty("comment") String comment) {
 		this.enabled = enabled;
 		this.location = location;
 		this.match = match;
