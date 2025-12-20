@@ -1,13 +1,14 @@
 package com.whiteoaksecurity.copier.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.whiteoaksecurity.copier.GlobalCopyProfile;
 import com.whiteoaksecurity.copier.Rule;
 import java.util.ArrayList;
 import javax.swing.table.AbstractTableModel;
 
 @JsonIgnoreProperties({"ruleType", "locations", "columnCount", "rowCount", "tableModelListeners"})
 public class RulesTableModel extends AbstractTableModel {
-	
+
 	String ruleType = "Rule";
 	private final String[] columnNames = {"Enabled", "Location", "Match", "Replace", "Type", "Case Sensitive", "Comment"};
 	String[] locations;
@@ -93,5 +94,10 @@ public class RulesTableModel extends AbstractTableModel {
 	
 	public void add(Rule r) {
 		data.add(r);
+	}
+
+	public void clear() {
+		data.clear();
+		fireTableDataChanged();
 	}
 }
